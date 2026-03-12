@@ -4247,7 +4247,7 @@
             alert('Scorecards copied to clipboard! Paste this into the Import box next time you open the app.');
         }
 
-        function importScorecards() {
+        async function importScorecards() {
             const text = document.getElementById('importScorecardsText').value.trim();
             if (!text) {
                 alert('Please paste your exported scorecards text first.');
@@ -4317,7 +4317,7 @@
             document.getElementById('importAllText').value = '';
         }
 
-        function importAllData() {
+        async function importAllData() {
             const text = document.getElementById('importAllText').value.trim();
             if (!text) {
                 alert('Please paste your exported trip data first.');
