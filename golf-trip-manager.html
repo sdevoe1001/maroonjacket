@@ -1100,7 +1100,7 @@
             throw new Error('Supabase library not loaded');
         }
         
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
         // Admin mode
         let isAdminMode = false;
@@ -1122,7 +1122,7 @@
                 console.log('Loading data from Supabase...');
                 
                 // Load players
-                const { data: playersData, error: playersError } = await supabase
+                const { data: playersData, error: playersError } = await supabaseClient
                     .from('players')
                     .select('*')
                     .order('name');
@@ -1136,7 +1136,7 @@
                 }));
                 
                 // Load courses
-                const { data: coursesData, error: coursesError } = await supabase
+                const { data: coursesData, error: coursesError } = await supabaseClient
                     .from('courses')
                     .select('*')
                     .order('name');
@@ -1153,7 +1153,7 @@
                 }));
                 
                 // Load events
-                const { data: eventsData, error: eventsError } = await supabase
+                const { data: eventsData, error: eventsError } = await supabaseClient
                     .from('events')
                     .select('*')
                     .order('time');
@@ -1169,10 +1169,11 @@
                 }));
                 
                 // Load pairings
-                const { data: pairingsData, error: pairingsError } = await supabase
+                const { data: pairingsData, error: pairingsError } = await supabaseClient
                     .from('pairings')
                     .select('*')
-                    .order('date, time');
+                    .order('date')
+                    .order('time');
                 if (pairingsError) throw pairingsError;
                 pairings = (pairingsData || []).map(p => ({
                     date: p.date,
@@ -1182,10 +1183,10 @@
                 }));
                 
                 // Load scorecards
-                const { data: scorecardsData, error: scorecardsError } = await supabase
+                const { data: scorecardsData, error: scorecardsError } = await supabaseClient
                     .from('scorecards')
                     .select('*')
-                    .order('date_played DESC');
+                    .order('date_played', { ascending: false });
                 if (scorecardsError) throw scorecardsError;
                 scorecards = (scorecardsData || []).map(sc => ({
                     id: sc.id,
@@ -1222,7 +1223,7 @@
             try {
                 if (player.id && player.id > 1000000000000) {
                     // Existing player - update
-                    const { error } = await supabase
+                    const { error } = await supabaseClient
                         .from('players')
                         .update({
                             name: player.name,
@@ -1234,7 +1235,7 @@
                     if (error) throw error;
                 } else {
                     // New player - insert
-                    const { data, error } = await supabase
+                    const { data, error } = await supabaseClient
                         .from('players')
                         .insert({
                             name: player.name,
@@ -1247,7 +1248,6 @@
                     if (error) throw error;
                     player.id = data.id;
                 }
-                await loadAllData();
                 return true;
             } catch (error) {
                 console.error('Error saving player:', error);
@@ -1257,12 +1257,11 @@
         
         async function deletePlayerFromDB(id) {
             try {
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('players')
                     .delete()
                     .eq('id', id);
                 if (error) throw error;
-                await loadAllData();
                 return true;
             } catch (error) {
                 console.error('Error deleting player:', error);
@@ -1274,7 +1273,7 @@
             try {
                 if (course.id && course.id > 1000000000000) {
                     // Existing course - update
-                    const { error } = await supabase
+                    const { error } = await supabaseClient
                         .from('courses')
                         .update({
                             name: course.name,
@@ -1289,7 +1288,7 @@
                     if (error) throw error;
                 } else {
                     // New course - insert
-                    const { data, error } = await supabase
+                    const { data, error } = await supabaseClient
                         .from('courses')
                         .insert({
                             name: course.name,
@@ -1305,7 +1304,6 @@
                     if (error) throw error;
                     course.id = data.id;
                 }
-                await loadAllData();
                 return true;
             } catch (error) {
                 console.error('Error saving course:', error);
@@ -1315,12 +1313,11 @@
         
         async function deleteCourseFromDB(id) {
             try {
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('courses')
                     .delete()
                     .eq('id', id);
                 if (error) throw error;
-                await loadAllData();
                 return true;
             } catch (error) {
                 console.error('Error deleting course:', error);
@@ -1332,7 +1329,7 @@
             try {
                 if (event.id && event.id > 1000000000000) {
                     // Existing event - update
-                    const { error } = await supabase
+                    const { error } = await supabaseClient
                         .from('events')
                         .update({
                             name: event.name,
@@ -1346,7 +1343,7 @@
                     if (error) throw error;
                 } else {
                     // New event - insert
-                    const { data, error } = await supabase
+                    const { data, error } = await supabaseClient
                         .from('events')
                         .insert({
                             name: event.name,
@@ -1361,7 +1358,6 @@
                     if (error) throw error;
                     event.id = data.id;
                 }
-                await loadAllData();
                 return true;
             } catch (error) {
                 console.error('Error saving event:', error);
@@ -1371,12 +1367,11 @@
         
         async function deleteEventFromDB(id) {
             try {
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('events')
                     .delete()
                     .eq('id', id);
                 if (error) throw error;
-                await loadAllData();
                 return true;
             } catch (error) {
                 console.error('Error deleting event:', error);
@@ -1387,11 +1382,11 @@
         async function saveAllPairings() {
             try {
                 // Delete all existing pairings
-                await supabase.from('pairings').delete().neq('id', 0);
+                await supabaseClient.from('pairings').delete().neq('id', 0);
                 
                 // Insert all current pairings
                 if (pairings.length > 0) {
-                    const { error } = await supabase
+                    const { error } = await supabaseClient
                         .from('pairings')
                         .insert(pairings.map(p => ({
                             date: p.date,
@@ -1402,7 +1397,6 @@
                     if (error) throw error;
                 }
                 
-                await loadAllData();
                 return true;
             } catch (error) {
                 console.error('Error saving pairings:', error);
@@ -1414,7 +1408,7 @@
             try {
                 if (scorecard.id && scorecard.id > 1000000000000) {
                     // Existing scorecard - update
-                    const { error } = await supabase
+                    const { error } = await supabaseClient
                         .from('scorecards')
                         .update({
                             player_id: scorecard.playerId,
@@ -1429,7 +1423,7 @@
                     if (error) throw error;
                 } else {
                     // New scorecard - insert
-                    const { data, error } = await supabase
+                    const { data, error } = await supabaseClient
                         .from('scorecards')
                         .insert({
                             player_id: scorecard.playerId,
@@ -1445,7 +1439,6 @@
                     if (error) throw error;
                     scorecard.id = data.id;
                 }
-                await loadAllData();
                 return true;
             } catch (error) {
                 console.error('Error saving scorecard:', error);
@@ -1455,12 +1448,11 @@
         
         async function deleteScorecardFromDB(id) {
             try {
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('scorecards')
                     .delete()
                     .eq('id', id);
                 if (error) throw error;
-                await loadAllData();
                 return true;
             } catch (error) {
                 console.error('Error deleting scorecard:', error);
@@ -1893,6 +1885,8 @@
             
             const success = await savePlayer(newPlayer);
             if (success) {
+                // Add to local array (savePlayer sets the ID from database)
+                players.push(newPlayer);
                 nameInput.value = '';
                 handicapInput.value = '';
                 renderPlayers();
@@ -1995,6 +1989,8 @@
             if (confirm('Remove this player? This will delete all their scores.')) {
                 const success = await deletePlayerFromDB(id);
                 if (success) {
+                    // Remove from local array
+                    players = players.filter(p => p.id !== id);
                     renderPlayers();
                     renderLeaderboard();
                     updateScoreDropdowns();
@@ -2982,8 +2978,9 @@
                     renderLeaderboard();
                     
                     // If we're in the scoring view, go back
-                if (document.getElementById('holeByHole').classList.contains('active')) {
-                    switchTab('scoring');
+                    if (document.getElementById('holeByHole').classList.contains('active')) {
+                        switchTab('scoring');
+                    }
                 }
             }
         }
@@ -4567,7 +4564,6 @@
             
             alert('Pinehurst courses and tee times have been loaded! Check the Courses and Schedule tabs.');
         }
-    }
     </script>
 </body>
 </html>
