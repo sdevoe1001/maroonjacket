@@ -914,7 +914,7 @@
             <div class="card admin-only" style="display: none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h2 style="margin: 0;">Add Course</h2>
-                    <button onclick="loadPinehurstData()" style="background: var(--gold);">
+                    <button onclick="loadPinehurstData()" class="admin-only" style="background: var(--gold); display: none;">
                         📍 Load Pinehurst Trip Data
                     </button>
                 </div>
@@ -1481,10 +1481,7 @@
                 renderScorecards();
                 renderPairings();
                 
-                // Auto-load Pinehurst data if no courses exist
-                if (courses.length === 0) {
-                    await loadPinehurstData();
-                }
+                // Pinehurst data no longer auto-loaded - use Import All Trip Data instead
             } else {
                 console.error('Failed to load data from Supabase');
                 alert('Error loading trip data. Please refresh the page.');
@@ -4328,19 +4325,39 @@
                     throw new Error('Invalid trip data format');
                 }
                 
-                // Import all data
+                // Import all data to local arrays
                 if (decoded.players)    players    = decoded.players;
                 if (decoded.pairings)   pairings   = decoded.pairings;
                 if (decoded.scorecards) scorecards = decoded.scorecards;
                 if (decoded.events)     events     = decoded.events;
                 if (decoded.courses)    courses    = decoded.courses;
                 
-                // Save all to Supabase
+                // Show progress
+                console.log('Saving to Supabase...', {
+                    players: players.length,
+                    courses: courses.length,
+                    events: events.length,
+                    pairings: pairings.length,
+                    scorecards: scorecards.length
+                });
+                
+                // Save all to Supabase (this may take a while)
+                console.log('Saving players...');
                 for (const player of players) await savePlayer(player);
+                
+                console.log('Saving courses...');
                 for (const course of courses) await saveCourse(course);
+                
+                console.log('Saving events...');
                 for (const event of events) await saveEvent(event);
+                
+                console.log('Saving pairings...');
                 await saveAllPairings();
+                
+                console.log('Saving scorecards...');
                 for (const scorecard of scorecards) await saveScorecard(scorecard);
+                
+                console.log('All data saved to Supabase!');
                 
                 // Refresh all displays
                 renderPlayers();
@@ -4362,11 +4379,11 @@
                     `${courses.length} courses`
                 ].join(', ');
                 
-                alert(`✅ All trip data imported successfully!\n\nRestored: ${summary}`);
+                alert(`✅ All trip data imported and saved to Supabase!\n\nRestored: ${summary}`);
                 
             } catch(e) {
-                alert('Could not read trip data. Make sure you pasted the complete export code without any changes.');
-                console.error(e);
+                alert('Could not import trip data. Error: ' + e.message);
+                console.error('Import error:', e);
             }
         }
 
