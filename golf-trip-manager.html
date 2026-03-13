@@ -914,7 +914,7 @@
             <div class="card admin-only" style="display: none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h2 style="margin: 0;">Add Course</h2>
-                    <button onclick="loadPinehurstData()" class="admin-only" style="background: var(--gold); display: none;">
+                    <button onclick="loadPinehurstData()" class="admin-only" style="background: var(--gold);">
                         📍 Load Pinehurst Trip Data
                     </button>
                 </div>
@@ -4341,23 +4341,65 @@
                     scorecards: scorecards.length
                 });
                 
-                // Save all to Supabase (this may take a while)
+                // Create ID mapping for imported data (old ID -> new ID)
+                const playerIdMap = {};
+                const courseIdMap = {};
+                
+                // Save all to Supabase (force insert by removing old IDs)
                 console.log('Saving players...');
-                for (const player of players) await savePlayer(player);
+                for (const player of players) {
+                    const oldId = player.id;
+                    delete player.id; // Force insert as new
+                    const success = await savePlayer(player);
+                    if (success && player.id) {
+                        playerIdMap[oldId] = player.id; // Map old ID to new ID
+                    }
+                }
                 
                 console.log('Saving courses...');
-                for (const course of courses) await saveCourse(course);
+                for (const course of courses) {
+                    const oldId = course.id;
+                    delete course.id; // Force insert as new
+                    const success = await saveCourse(course);
+                    if (success && course.id) {
+                        courseIdMap[oldId] = course.id;
+                    }
+                }
                 
                 console.log('Saving events...');
-                for (const event of events) await saveEvent(event);
+                for (const event of events) {
+                    delete event.id; // Force insert as new
+                    // Update course_id reference if it exists
+                    if (event.courseId && courseIdMap[event.courseId]) {
+                        event.courseId = courseIdMap[event.courseId];
+                    }
+                    await saveEvent(event);
+                }
                 
-                console.log('Saving pairings...');
+                console.log('Updating pairings with new player IDs...');
+                for (const pairing of pairings) {
+                    // Update player IDs in pairings
+                    pairing.players = pairing.players.map(oldPlayerId => 
+                        playerIdMap[oldPlayerId] || oldPlayerId
+                    );
+                }
                 await saveAllPairings();
                 
                 console.log('Saving scorecards...');
-                for (const scorecard of scorecards) await saveScorecard(scorecard);
+                for (const scorecard of scorecards) {
+                    delete scorecard.id; // Force insert as new
+                    // Update player and course ID references
+                    if (playerIdMap[scorecard.playerId]) {
+                        scorecard.playerId = playerIdMap[scorecard.playerId];
+                    }
+                    if (courseIdMap[scorecard.courseId]) {
+                        scorecard.courseId = courseIdMap[scorecard.courseId];
+                    }
+                    await saveScorecard(scorecard);
+                }
                 
                 console.log('All data saved to Supabase!');
+                console.log('ID mappings:', { playerIdMap, courseIdMap });
                 
                 // Refresh all displays
                 renderPlayers();
@@ -4397,7 +4439,6 @@
             
             // Pinehurst No. 2
             const pinehurst2 = {
-                id: Date.now(),
                 name: "Pinehurst No. 2",
                 rating: 76.5,
                 slope: 138,
@@ -4434,7 +4475,6 @@
             
             // Pinehurst No. 4
             const pinehurst4 = {
-                id: Date.now() + 1,
                 name: "Pinehurst No. 4",
                 rating: 74.9,
                 slope: 138,
@@ -4470,7 +4510,6 @@
             
             // Pinehurst No. 7
             const pinehurst7 = {
-                id: Date.now() + 2,
                 name: "Pinehurst No. 7",
                 rating: 75.6,
                 slope: 142,
@@ -4506,7 +4545,6 @@
             
             // Pinehurst No. 8
             const pinehurst8 = {
-                id: Date.now() + 3,
                 name: "Pinehurst No. 8",
                 rating: 73.9,
                 slope: 139,
@@ -4540,11 +4578,18 @@
                 ]
             };
             
-            // Add courses to Supabase
+            // Add courses to Supabase and local array
             await saveCourse(pinehurst2);
+            courses.push(pinehurst2); // Add to local array
+            
             await saveCourse(pinehurst4);
+            courses.push(pinehurst4);
+            
             await saveCourse(pinehurst7);
+            courses.push(pinehurst7);
+            
             await saveCourse(pinehurst8);
+            courses.push(pinehurst8);
             
             // Add tee times as events
             const teeTimes = [
@@ -4572,6 +4617,7 @@
                     isScramble: false
                 };
                 await saveEvent(event);
+                events.push(event); // Add to local array
             }
             
             // Refresh displays
