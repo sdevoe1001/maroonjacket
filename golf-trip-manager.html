@@ -1439,7 +1439,7 @@
             try {
                 console.log('saveScorecard called:', scorecard);
                 
-                if (scorecard.id && scorecard.id > 1000000000000) {
+                if (scorecard.id) {
                     // Existing scorecard - update
                     console.log('Updating existing scorecard ID:', scorecard.id);
                     const { error } = await supabaseClient
@@ -2453,6 +2453,12 @@
                     }
                 }
             }
+            
+            // Reload scorecards from local array to ensure we have the correct IDs
+            playersInGroup = playersInGroup.map(p => {
+                const sc = scorecards.find(sc => sc.playerId === p.id && sc.courseId === course.id);
+                return { ...p, scorecardId: sc?.id };
+            });
             
             // Check if this is a scramble round
             let isScramble = false;
