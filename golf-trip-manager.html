@@ -1226,6 +1226,7 @@
             try {
                 if (player.id && player.id > 1000000000000) {
                     // Existing player - update
+                    console.log('Updating player:', player.name, 'ID:', player.id);
                     const { error } = await supabaseClient
                         .from('players')
                         .update({
@@ -1236,8 +1237,10 @@
                         })
                         .eq('id', player.id);
                     if (error) throw error;
+                    console.log('Player updated successfully');
                 } else {
                     // New player - insert
+                    console.log('Inserting new player:', player.name);
                     const { data, error } = await supabaseClient
                         .from('players')
                         .insert({
@@ -1250,6 +1253,7 @@
                         .single();
                     if (error) throw error;
                     player.id = data.id;
+                    console.log('Player inserted with ID:', player.id);
                 }
                 return true;
             } catch (error) {
@@ -3763,8 +3767,31 @@
         function renderPairings() {
             const container = document.getElementById('pairingsDisplay');
             
+            // If no pairings exist but we have events, auto-create blank pairings
+            if (pairings.length === 0 && events.length > 0) {
+                console.log('Auto-creating blank pairings from events...');
+                pairings = events
+                    .filter(e => e.name.startsWith('Tee Time -'))
+                    .map(e => {
+                        const courseName = e.name.replace('Tee Time - ', '');
+                        const date = new Date(e.time);
+                        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                        
+                        return {
+                            date: dateStr,
+                            time: timeStr,
+                            course: courseName,
+                            players: []
+                        };
+                    });
+                
+                // Save to Supabase
+                saveAllPairings();
+            }
+            
             if (pairings.length === 0) {
-                container.innerHTML = '<div class="empty-state">Click "Generate Optimal Pairings" or "Create Blank Pairings" to get started</div>';
+                container.innerHTML = '<div class="empty-state">No tee times found. Go to Courses tab and load Pinehurst data first.</div>';
                 return;
             }
             
@@ -4653,18 +4680,18 @@
             
             // Add tee times as events (times are in Eastern Daylight Time)
             const teeTimes = [
-                { date: "2026-05-07T18:20:00-04:00", course: "Pinehurst No. 4" },  // 2:20 PM EDT
-                { date: "2026-05-07T18:30:00-04:00", course: "Pinehurst No. 4" },  // 2:30 PM EDT
-                { date: "2026-05-07T18:40:00-04:00", course: "Pinehurst No. 4" },  // 2:40 PM EDT
-                { date: "2026-05-08T12:30:00-04:00", course: "Pinehurst No. 2" },  // 8:30 AM EDT
-                { date: "2026-05-08T12:40:00-04:00", course: "Pinehurst No. 2" },  // 8:40 AM EDT
-                { date: "2026-05-08T12:50:00-04:00", course: "Pinehurst No. 2" },  // 8:50 AM EDT
-                { date: "2026-05-09T12:40:00-04:00", course: "Pinehurst No. 8" },  // 8:40 AM EDT
-                { date: "2026-05-09T12:50:00-04:00", course: "Pinehurst No. 8" },  // 8:50 AM EDT
-                { date: "2026-05-09T13:00:00-04:00", course: "Pinehurst No. 8" },  // 9:00 AM EDT
-                { date: "2026-05-09T18:34:00-04:00", course: "Pinehurst No. 7" },  // 2:34 PM EDT
-                { date: "2026-05-09T18:43:00-04:00", course: "Pinehurst No. 7" },  // 2:43 PM EDT
-                { date: "2026-05-09T18:52:00-04:00", course: "Pinehurst No. 7" }   // 2:52 PM EDT
+                { date: "2026-05-07T14:20:00-04:00", course: "Pinehurst No. 4" },  // 2:20 PM EDT
+                { date: "2026-05-07T14:30:00-04:00", course: "Pinehurst No. 4" },  // 2:30 PM EDT
+                { date: "2026-05-07T14:40:00-04:00", course: "Pinehurst No. 4" },  // 2:40 PM EDT
+                { date: "2026-05-08T08:30:00-04:00", course: "Pinehurst No. 2" },  // 8:30 AM EDT
+                { date: "2026-05-08T08:40:00-04:00", course: "Pinehurst No. 2" },  // 8:40 AM EDT
+                { date: "2026-05-08T08:50:00-04:00", course: "Pinehurst No. 2" },  // 8:50 AM EDT
+                { date: "2026-05-09T08:40:00-04:00", course: "Pinehurst No. 8" },  // 8:40 AM EDT
+                { date: "2026-05-09T08:50:00-04:00", course: "Pinehurst No. 8" },  // 8:50 AM EDT
+                { date: "2026-05-09T09:00:00-04:00", course: "Pinehurst No. 8" },  // 9:00 AM EDT
+                { date: "2026-05-09T14:34:00-04:00", course: "Pinehurst No. 7" },  // 2:34 PM EDT
+                { date: "2026-05-09T14:43:00-04:00", course: "Pinehurst No. 7" },  // 2:43 PM EDT
+                { date: "2026-05-09T14:52:00-04:00", course: "Pinehurst No. 7" }   // 2:52 PM EDT
             ];
             
             for (const teeTime of teeTimes) {
