@@ -2265,8 +2265,12 @@
         }
         
         async function openPlayerScorecard() {
+            console.log('openPlayerScorecard called');
             const playerSelectEl = document.getElementById('scorePlayerSelect');
             const courseSelectEl = document.getElementById('scoreCourseSelect');
+            
+            console.log('Player select element:', playerSelectEl);
+            console.log('Course select element:', courseSelectEl);
             
             if (!playerSelectEl || !courseSelectEl) {
                 alert('Scorecard form not ready. Please try again.');
@@ -2275,6 +2279,8 @@
             
             const playerId = parseInt(playerSelectEl.value);
             const courseId = parseInt(courseSelectEl.value);
+            
+            console.log('Selected player ID:', playerId, 'Course ID:', courseId);
             
             if (!playerId) {
                 alert('Please select a player');
@@ -2289,6 +2295,8 @@
             const player = players.find(p => p.id === playerId);
             const course = courses.find(c => c.id === courseId);
             
+            console.log('Found player:', player, 'Found course:', course);
+            
             if (!player || !course) {
                 alert('Player or course not found');
                 return;
@@ -2299,6 +2307,8 @@
                 pairing.players.includes(playerId) && 
                 courses.find(c => c.name === pairing.course && c.id === courseId)
             );
+            
+            console.log('Player is assigned:', isAssigned);
             
             if (!isAssigned && pairings.length > 0) {
                 const confirmOverride = confirm(
@@ -2313,8 +2323,11 @@
             // Find or create scorecard for this player/course combination
             let scorecard = scorecards.find(sc => sc.playerId === playerId && sc.courseId === courseId);
             
+            console.log('Existing scorecard:', scorecard);
+            
             if (!scorecard) {
                 // Create new scorecard
+                console.log('Creating new scorecard...');
                 scorecard = {
                     playerId: playerId,
                     courseId: courseId,
@@ -2326,12 +2339,15 @@
                     datePlayed: new Date().toISOString()
                 };
                 await saveScorecard(scorecard);
+                console.log('Scorecard saved:', scorecard);
             }
             
             // Switch to hole-by-hole view
+            console.log('Switching to hole-by-hole view...');
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.getElementById('holeByHole').classList.add('active');
             
+            console.log('Rendering scorecard...');
             renderPlayerScorecard(scorecard, player, course);
         }
         
