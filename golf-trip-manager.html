@@ -1191,18 +1191,42 @@
                     .select('*')
                     .order('date_played', { ascending: false });
                 if (scorecardsError) throw scorecardsError;
-                scorecards = (scorecardsData || []).map(sc => ({
-                    id: sc.id,
-                    playerId: sc.player_id,
-                    courseId: sc.course_id,
-                    holes: sc.holes || Array(18).fill(0),
-                    datePlayed: sc.date_played,
-                    grossTotal: sc.gross_total || 0,
-                    netTotal: sc.net_total || 0,
-                    stablefordTotal: sc.stableford_total || 0,
-                    playerName: '', // Will be populated by renders
-                    courseName: ''  // Will be populated by renders
-                }));
+                
+                // Map and deduplicate scorecards (keep only newest for each player/course combo)
+                const scorecardMap = new Map();
+                (scorecardsData || []).forEach(sc => {
+                    const key = `${sc.player_id}-${sc.course_id}`;
+                    // Only keep the first one (newest due to date_played DESC order)
+                    if (!scorecardMap.has(key)) {
+                        scorecardMap.set(key, {
+                            id: sc.id,
+                            playerId: sc.player_id,
+                            courseId: sc.course_id,
+                            holes: sc.holes || Array(18).fill(0),
+                            datePlayed: sc.date_played,
+                            grossTotal: sc.gross_total || 0,
+                            netTotal: sc.net_total || 0,
+                            stablefordTotal: sc.stableford_total || 0,
+                            playerName: '', // Will be populated by renders
+                            courseName: ''  // Will be populated by renders
+                        });
+                    }
+                });
+                scorecards = Array.from(scorecardMap.values());
+                
+                // Delete duplicate scorecards from Supabase
+                if ((scorecardsData || []).length > scorecards.length) {
+                    console.log(`Found ${(scorecardsData || []).length - scorecards.length} duplicate scorecards, cleaning up...`);
+                    const keepIds = scorecards.map(sc => sc.id);
+                    const deleteIds = (scorecardsData || [])
+                        .filter(sc => !keepIds.includes(sc.id))
+                        .map(sc => sc.id);
+                    
+                    for (const id of deleteIds) {
+                        await supabaseClient.from('scorecards').delete().eq('id', id);
+                    }
+                    console.log(`Deleted ${deleteIds.length} duplicate scorecards from database`);
+                }
                 
                 dataLoaded = true;
                 console.log('Data loaded successfully:', { 
@@ -2403,7 +2427,8 @@
             
             // Ensure scorecards exist for all players in the group
             for (const p of playersInGroup) {
-                if (!scorecards.find(sc => sc.playerId === p.id && sc.courseId === course.id)) {
+                let existingScorecard = scorecards.find(sc => sc.playerId === p.id && sc.courseId === course.id);
+                if (!existingScorecard) {
                     const newScorecard = {
                         playerId: p.id,
                         courseId: course.id,
@@ -2414,9 +2439,12 @@
                         netTotal: 0,
                         datePlayed: new Date().toISOString()
                     };
-                    await saveScorecard(newScorecard);
-                    // Add to local array so it's available immediately
-                    scorecards.push(newScorecard);
+                    const success = await saveScorecard(newScorecard);
+                    if (success) {
+                        // Add to local array with the ID from Supabase
+                        scorecards.push(newScorecard);
+                        console.log('Created scorecard for', p.name, 'with ID:', newScorecard.id);
+                    }
                 }
             }
             
