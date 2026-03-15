@@ -807,6 +807,9 @@
                 <button onclick="showImportAllDialog()" class="admin-only inline" style="display: none; background: var(--gold); padding: 10px 20px; font-size: 0.9rem;">
                     📥 Import All Trip Data
                 </button>
+                <button onclick="clearAllSupabaseData()" class="admin-only inline" style="display: none; background: var(--rust); padding: 10px 20px; font-size: 0.9rem;">
+                    🗑️ Clear All Data
+                </button>
                 <button onclick="toggleAdminMode()" id="adminToggleBtn" style="background: var(--sand); padding: 10px 20px; font-size: 0.9rem;">
                     🔒 Admin Mode
                 </button>
@@ -4429,6 +4432,63 @@
             }
         }
 
+        async function clearAllSupabaseData() {
+            if (!confirm('⚠️ DELETE ALL DATA?\n\nThis will permanently delete:\n• All players\n• All courses\n• All tee times\n• All pairings\n• All scorecards\n\nThis cannot be undone!\n\nAre you sure?')) {
+                return;
+            }
+            
+            if (!confirm('FINAL WARNING: Delete everything from Supabase?')) {
+                return;
+            }
+            
+            try {
+                console.log('Clearing all Supabase data...');
+                
+                // Delete all scorecards
+                await supabaseClient.from('scorecards').delete().neq('id', 0);
+                console.log('Deleted scorecards');
+                
+                // Delete all pairings
+                await supabaseClient.from('pairings').delete().neq('id', 0);
+                console.log('Deleted pairings');
+                
+                // Delete all events
+                await supabaseClient.from('events').delete().neq('id', 0);
+                console.log('Deleted events');
+                
+                // Delete all courses
+                await supabaseClient.from('courses').delete().neq('id', 0);
+                console.log('Deleted courses');
+                
+                // Delete all players
+                await supabaseClient.from('players').delete().neq('id', 0);
+                console.log('Deleted players');
+                
+                // Clear local arrays
+                players = [];
+                courses = [];
+                events = [];
+                pairings = [];
+                scorecards = [];
+                
+                // Refresh all displays
+                renderPlayers();
+                renderCourses();
+                renderEvents();
+                renderPairings();
+                renderScorecards();
+                renderLeaderboard();
+                updateScoreDropdowns();
+                updateCourseDropdown();
+                
+                alert('✅ All data cleared from Supabase and local storage!');
+                
+            } catch(e) {
+                alert('Error clearing data: ' + e.message);
+                console.error('Clear error:', e);
+            }
+        }
+
         // Note: No beforeunload handler needed - all data is auto-saved to Supabase
         
         // Load Pinehurst course data and tee times
@@ -4591,20 +4651,20 @@
             await saveCourse(pinehurst8);
             courses.push(pinehurst8);
             
-            // Add tee times as events
+            // Add tee times as events (times are in Eastern Daylight Time)
             const teeTimes = [
-                { date: "2026-05-07T14:20", course: "Pinehurst No. 4" },
-                { date: "2026-05-07T14:30", course: "Pinehurst No. 4" },
-                { date: "2026-05-07T14:40", course: "Pinehurst No. 4" },
-                { date: "2026-05-08T08:30", course: "Pinehurst No. 2" },
-                { date: "2026-05-08T08:40", course: "Pinehurst No. 2" },
-                { date: "2026-05-08T08:50", course: "Pinehurst No. 2" },
-                { date: "2026-05-09T08:40", course: "Pinehurst No. 8" },
-                { date: "2026-05-09T08:50", course: "Pinehurst No. 8" },
-                { date: "2026-05-09T09:00", course: "Pinehurst No. 8" },
-                { date: "2026-05-09T14:34", course: "Pinehurst No. 7" },
-                { date: "2026-05-09T14:43", course: "Pinehurst No. 7" },
-                { date: "2026-05-09T14:52", course: "Pinehurst No. 7" }
+                { date: "2026-05-07T18:20:00-04:00", course: "Pinehurst No. 4" },  // 2:20 PM EDT
+                { date: "2026-05-07T18:30:00-04:00", course: "Pinehurst No. 4" },  // 2:30 PM EDT
+                { date: "2026-05-07T18:40:00-04:00", course: "Pinehurst No. 4" },  // 2:40 PM EDT
+                { date: "2026-05-08T12:30:00-04:00", course: "Pinehurst No. 2" },  // 8:30 AM EDT
+                { date: "2026-05-08T12:40:00-04:00", course: "Pinehurst No. 2" },  // 8:40 AM EDT
+                { date: "2026-05-08T12:50:00-04:00", course: "Pinehurst No. 2" },  // 8:50 AM EDT
+                { date: "2026-05-09T12:40:00-04:00", course: "Pinehurst No. 8" },  // 8:40 AM EDT
+                { date: "2026-05-09T12:50:00-04:00", course: "Pinehurst No. 8" },  // 8:50 AM EDT
+                { date: "2026-05-09T13:00:00-04:00", course: "Pinehurst No. 8" },  // 9:00 AM EDT
+                { date: "2026-05-09T18:34:00-04:00", course: "Pinehurst No. 7" },  // 2:34 PM EDT
+                { date: "2026-05-09T18:43:00-04:00", course: "Pinehurst No. 7" },  // 2:43 PM EDT
+                { date: "2026-05-09T18:52:00-04:00", course: "Pinehurst No. 7" }   // 2:52 PM EDT
             ];
             
             for (const teeTime of teeTimes) {
