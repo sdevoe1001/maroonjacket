@@ -1437,8 +1437,11 @@
         
         async function saveScorecard(scorecard) {
             try {
+                console.log('saveScorecard called:', scorecard);
+                
                 if (scorecard.id && scorecard.id > 1000000000000) {
                     // Existing scorecard - update
+                    console.log('Updating existing scorecard ID:', scorecard.id);
                     const { error } = await supabaseClient
                         .from('scorecards')
                         .update({
@@ -1452,8 +1455,10 @@
                         })
                         .eq('id', scorecard.id);
                     if (error) throw error;
+                    console.log('Scorecard updated successfully');
                 } else {
                     // New scorecard - insert
+                    console.log('Inserting new scorecard');
                     const { data, error } = await supabaseClient
                         .from('scorecards')
                         .insert({
@@ -1469,6 +1474,7 @@
                         .single();
                     if (error) throw error;
                     scorecard.id = data.id;
+                    console.log('Scorecard inserted with ID:', scorecard.id);
                 }
                 return true;
             } catch (error) {
@@ -2728,9 +2734,12 @@
             
             scorecard.holes[holeIndex] = validScore;
             
+            console.log(`Score updated: Hole ${holeIndex + 1} = ${validScore}, Scorecard ID: ${scorecardId}`);
+            
             // Debounced save to Supabase (wait 500ms after last change)
             clearTimeout(scorecard._saveTimeout);
             scorecard._saveTimeout = setTimeout(async () => {
+                console.log('Debounced save triggered for scorecard:', scorecardId);
                 await saveScorecard(scorecard);
             }, 500);
             
