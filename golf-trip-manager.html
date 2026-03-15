@@ -2415,6 +2415,8 @@
                         datePlayed: new Date().toISOString()
                     };
                     await saveScorecard(newScorecard);
+                    // Add to local array so it's available immediately
+                    scorecards.push(newScorecard);
                 }
             }
             
