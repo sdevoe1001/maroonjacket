@@ -917,9 +917,6 @@
             <div class="card admin-only" style="display: none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h2 style="margin: 0;">Add Course</h2>
-                    <button onclick="loadPinehurstData()" class="admin-only" style="background: var(--gold);">
-                        📍 Load Pinehurst Trip Data
-                    </button>
                 </div>
                 <form id="courseForm">
                     <div class="form-row">
@@ -1527,9 +1524,17 @@
             // Attach form submit listeners once DOM is ready
             document.getElementById('eventForm').addEventListener('submit', async function(e) {
                 e.preventDefault();
+                
+                // Get the datetime-local value (e.g., "2026-05-08T08:30")
+                const timeInput = document.getElementById('eventTime').value;
+                
+                // Convert to EDT by appending -04:00 timezone
+                // datetime-local gives us YYYY-MM-DDTHH:mm format
+                const edtTime = timeInput + ':00-04:00';  // Add seconds and EDT offset
+                
                 const ev = {
                     name: document.getElementById('eventName').value,
-                    time: document.getElementById('eventTime').value,
+                    time: edtTime,  // Use EDT-formatted time
                     details: document.getElementById('eventDetails').value
                 };
                 const success = await saveEvent(ev);
@@ -1678,7 +1683,7 @@
                 manageList.innerHTML = `
                     <div class="empty-state">
                         <p style="margin-bottom: 15px;">No courses loaded yet.</p>
-                        <p>Go to the <strong>Courses</strong> tab and click <strong>"Load Pinehurst Trip Data"</strong> to get started.</p>
+                        <p>Go to the <strong>Courses</strong> tab and add a course to get started.</p>
                     </div>
                 `;
                 if (list) list.innerHTML = '<div class="empty-state">No courses loaded yet.</div>';
@@ -1710,40 +1715,11 @@
                     // Find course to get tee options
                     const course = courses.find(c => c.name === courseName);
                     
-                    console.log(`Event: ${event.name}, Course found: ${!!course}, Has teeOptions: ${!!(course && course.teeOptions)}, Options count: ${course && course.teeOptions ? course.teeOptions.length : 0}`);
+                    console.log(`Event: ${event.name}, Course found: ${!!course}`);
                     
-                    // Build inline tee selection for Manage Tee Times
-                    if (course && course.teeOptions && course.teeOptions.length > 0) {
-                        const selectedTee = event.selectedTee || course.selectedTee || course.teeOptions[0].name;
-                        
-                        // Inline dropdown next to course name
-                        teeSelectHTML = `
-                            <select onchange="updateEventTee(${event.id}, this.value)" 
-                                    style="padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; 
-                                           border: 2px solid var(--sage); background: white; cursor: pointer;
-                                           min-width: 200px;">
-                                ${course.teeOptions.map(tee => 
-                                    `<option value="${tee.name}" ${selectedTee === tee.name ? 'selected' : ''}>
-                                        ${tee.name} (${tee.yards} yds)
-                                    </option>`
-                                ).join('')}
-                            </select>`;
-                        
-                        // For Schedule tab display - show selected tee info
-                        const teeData = course.teeOptions.find(t => t.name === selectedTee);
-                        if (teeData) {
-                            teeInfoHTML = `
-                                <div style="margin-top: 8px; font-size: 0.9rem; color: var(--kelly-green); font-weight: 600;">
-                                    🏌️ ${teeData.name} - ${teeData.yards} yards
-                                </div>`;
-                        }
-                    } else if (course) {
-                        // No tee options - show a note
-                        teeSelectHTML = `<span style="font-size: 0.85rem; color: var(--sand); font-style: italic;">(No tee options available for this course)</span>`;
-                    } else {
-                        // Course not found
-                        teeSelectHTML = `<span style="font-size: 0.85rem; color: var(--sand); font-style: italic;">(Course not found: ${courseName})</span>`;
-                    }
+                    // No tee selection needed - user creates separate courses for each tee
+                    teeSelectHTML = '';
+                    teeInfoHTML = '';
 
                     const matchedPairing = pairings.find(p => {
                         if (p.course !== courseName) return false;
@@ -1818,7 +1794,7 @@
                         <div class="event-time">📅 ${r.formatted}</div>
                         ${r.detailsLine}
                         ${r.pairingPlayersHTML}
-                        <button class="delete-btn admin-only" onclick="deleteEvent(${r.id})" style="margin-top: 10px; display: none;">Delete</button>
+                        <button class="delete-btn admin-only" onclick="deleteEvent(${r.id})" style="margin-top: 10px;">Delete Tee Time</button>
                     </li>
                 `).join('');
             }
