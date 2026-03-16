@@ -1539,6 +1539,8 @@
                 };
                 const success = await saveEvent(ev);
                 if (success) {
+                    // Add to local array so it appears immediately
+                    events.push(ev);
                     this.reset();
                     renderEvents();
                 } else {
@@ -1565,6 +1567,8 @@
                 };
                 const success = await saveCourse(course);
                 if (success) {
+                    // Add to local array so it appears immediately
+                    courses.push(course);
                     this.reset();
                     renderHoleInputs();
                     renderCourses();
