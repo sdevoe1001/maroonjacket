@@ -881,9 +881,17 @@
         
         <!-- Players Tab -->
         <div id="players" class="tab-content">
+            <!-- Public view - always visible -->
+            <div class="card">
+                <h2>Players</h2>
+                <p style="margin-bottom: 20px; color: var(--kelly-green);">All participants on this golf trip.</p>
+                <div class="players-grid" id="playersGridPublic"></div>
+            </div>
+            
+            <!-- Admin controls - only visible in admin mode -->
             <div class="card admin-only" style="display: none;">
                 <h2>Manage Players</h2>
-                <p style="margin-bottom: 20px; color: var(--kelly-green);">Add all 12 friends who are coming on the trip.</p>
+                <p style="margin-bottom: 20px; color: var(--kelly-green);">Add or edit players for the trip.</p>
                 
                 <div class="add-player-section">
                     <input type="text" id="playerName" placeholder="Player name">
@@ -1916,13 +1924,17 @@
         
         function renderPlayers() {
             const grid = document.getElementById('playersGrid');
+            const publicGrid = document.getElementById('playersGridPublic');
             
             if (players.length === 0) {
-                grid.innerHTML = '<div class="empty-state" style="grid-column: 1/-1;">No players added yet</div>';
+                const emptyMsg = '<div class="empty-state" style="grid-column: 1/-1;">No players added yet</div>';
+                if (grid) grid.innerHTML = emptyMsg;
+                if (publicGrid) publicGrid.innerHTML = emptyMsg;
                 return;
             }
             
-            grid.innerHTML = players.map(player => {
+            // Generate player cards - public version (no edit/delete buttons)
+            const publicHTML = players.map(player => {
                 // Ensure adjustments exist (for backward compatibility)
                 if (player.adj2 === undefined) player.adj2 = 0;
                 if (player.adj8 === undefined) player.adj8 = 0;
@@ -1934,13 +1946,34 @@
                         <div style="font-size: 0.85rem; opacity: 0.8; margin-top: 5px;">
                             Adj #2: ${player.adj2 >= 0 ? '+' : ''}${player.adj2} | Adj #8: ${player.adj8 >= 0 ? '+' : ''}${player.adj8}
                         </div>
-                        <div style="display: flex; gap: 5px; margin-top: 10px;" class="admin-only" style="display: none;">
+                    </div>
+                `;
+            }).join('');
+            
+            // Generate player cards - admin version (with edit/delete buttons)
+            const adminHTML = players.map(player => {
+                // Ensure adjustments exist (for backward compatibility)
+                if (player.adj2 === undefined) player.adj2 = 0;
+                if (player.adj8 === undefined) player.adj8 = 0;
+                
+                return `
+                    <div class="player-badge">
+                        <div style="font-size: 1.1rem; margin-bottom: 5px;">${player.name}</div>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">IDX: ${player.handicapIndex.toFixed(1)}</div>
+                        <div style="font-size: 0.85rem; opacity: 0.8; margin-top: 5px;">
+                            Adj #2: ${player.adj2 >= 0 ? '+' : ''}${player.adj2} | Adj #8: ${player.adj8 >= 0 ? '+' : ''}${player.adj8}
+                        </div>
+                        <div style="display: flex; gap: 5px; margin-top: 10px;">
                             <button style="flex: 1; background: var(--sage); padding: 8px;" onclick="editPlayer(${player.id})">Edit</button>
                             <button class="delete-btn" style="flex: 1; padding: 8px;" onclick="deletePlayer(${player.id})">Remove</button>
                         </div>
                     </div>
                 `;
             }).join('');
+            
+            // Render to both grids
+            if (publicGrid) publicGrid.innerHTML = publicHTML;
+            if (grid) grid.innerHTML = adminHTML;
         }
         
         async function editPlayer(id) {
