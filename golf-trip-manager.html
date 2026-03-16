@@ -2983,7 +2983,7 @@
                                                 <button onclick="editScorecard(${sc.id})" style="padding: 10px 20px;">
                                                     Edit Scores
                                                 </button>
-                                                <button onclick="deleteScorecard(${sc.id})" class="delete-btn admin-only" style="display: none;">
+                                                <button onclick="deleteScorecard(${sc.id})" class="delete-btn admin-only">
                                                     Delete
                                                 </button>
                                             </div>
@@ -3019,6 +3019,8 @@
             if (confirm('Delete this scorecard? All scores will be permanently removed.')) {
                 const success = await deleteScorecardFromDB(scorecardId);
                 if (success) {
+                    // Remove from local array
+                    scorecards = scorecards.filter(sc => sc.id !== scorecardId);
                     renderScorecards();
                     renderLeaderboard();
                     
