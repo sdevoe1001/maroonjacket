@@ -964,6 +964,9 @@
                 </p>
                 
                 <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button onclick="refreshPairingsFromEvents()" style="background: var(--gold);">
+                        🔄 Refresh from Tee Times
+                    </button>
                     <button onclick="generateOptimalPairings()" style="background: var(--kelly-green);">
                         🎯 Generate Optimal Pairings
                     </button>
@@ -3661,6 +3664,37 @@
             await saveAllPairings();
             renderPairings();
             renderPairingStats();
+        }
+        
+        async function refreshPairingsFromEvents() {
+            // Create pairings from all current tee time events
+            console.log('Refreshing pairings from events...');
+            
+            const newPairings = events
+                .filter(e => e.name.startsWith('Tee Time -'))
+                .map(e => {
+                    const courseName = e.name.replace('Tee Time - ', '');
+                    const date = new Date(e.time);
+                    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                    
+                    // Check if we already have a pairing for this time/course - preserve player assignments
+                    const existing = pairings.find(p => p.date === dateStr && p.time === timeStr && p.course === courseName);
+                    
+                    return {
+                        date: dateStr,
+                        time: timeStr,
+                        course: courseName,
+                        players: existing ? existing.players : []  // Preserve existing player assignments
+                    };
+                });
+            
+            pairings = newPairings;
+            await saveAllPairings();
+            renderPairings();
+            renderPairingStats();
+            
+            alert(`Refreshed! Found ${newPairings.length} tee times from events.`);
         }
         
         function findOptimalPairings(allPlayers, initialPairings) {
