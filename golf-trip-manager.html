@@ -3636,11 +3636,15 @@
                     }
                     
                     const courseHandicap = getAdjustedCourseHandicap(player, course, courseRating, courseSlope, course.par);
-                    const strokes = getStrokesForHole(courseHandicap, holeHandicap);
-                    const netScore = grossScore - strokes;
+                    
+                    // For skins: maximum 1 stroke per hole (cap at 18 total strokes)
+                    // Player gets a stroke on this hole if their (capped) course handicap >= hole's stroke index
+                    const cappedHandicap = Math.min(courseHandicap, 18);
+                    const skinsStrokes = (cappedHandicap >= holeHandicap) ? 1 : 0;
+                    const netScore = grossScore - skinsStrokes;
                     
                     const isBirdie = grossScore < holePar;
-                    const isGrossBirdie = isBirdie && strokes === 0;
+                    const isGrossBirdie = isBirdie && skinsStrokes === 0;
                     
                     return {
                         playerId: player.id,
