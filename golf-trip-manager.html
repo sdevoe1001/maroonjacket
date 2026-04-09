@@ -1256,7 +1256,7 @@
         // Database helper functions
         async function savePlayer(player) {
             try {
-                if (player.id && player.id > 1000000000000) {
+                if (player.id) {
                     // Existing player - update
                     console.log('Updating player:', player.name, 'ID:', player.id);
                     const { error } = await supabaseClient
@@ -1310,7 +1310,7 @@
         
         async function saveCourse(course) {
             try {
-                if (course.id && course.id > 1000000000000) {
+                if (course.id) {
                     // Existing course - update
                     const { error } = await supabaseClient
                         .from('courses')
@@ -1366,7 +1366,7 @@
         
         async function saveEvent(event) {
             try {
-                if (event.id && event.id > 1000000000000) {
+                if (event.id) {
                     // Existing event - update
                     const { error } = await supabaseClient
                         .from('events')
@@ -2027,9 +2027,59 @@
             
             const success = await savePlayer(player);
             if (success) {
+                // Recalculate all scorecards for this player with new adjustments
+                console.log('Recalculating scorecards for', player.name, 'with new adjustments');
+                for (const sc of scorecards) {
+                    if (sc.playerId === player.id) {
+                        const course = courses.find(c => c.id === sc.courseId);
+                        if (course) {
+                            // Get tee-specific rating/slope if available
+                            let courseRating = course.rating;
+                            let courseSlope = course.slope;
+                            
+                            // Find the event for this scorecard to get tee selection
+                            const relevantPairing = pairings.find(p => 
+                                p.players.includes(player.id) && 
+                                courses.find(c => c.name === p.course && c.id === course.id)
+                            );
+                            
+                            if (relevantPairing) {
+                                const matchingEvent = events.find(e => {
+                                    if (!e.name.startsWith('Tee Time -')) return false;
+                                    const courseName = e.name.replace('Tee Time - ', '').trim();
+                                    if (courseName !== course.name) return false;
+                                    
+                                    const eventDate = new Date(e.time);
+                                    const pt = parseTeeTime(relevantPairing.date, relevantPairing.time);
+                                    if (!pt) return false;
+                                    
+                                    return pt.getMonth() === eventDate.getMonth() &&
+                                           pt.getDate() === eventDate.getDate() &&
+                                           pt.getFullYear() === eventDate.getFullYear() &&
+                                           pt.getHours() === eventDate.getHours() &&
+                                           Math.abs(pt.getMinutes() - eventDate.getMinutes()) <= 1;
+                                });
+                                
+                                if (matchingEvent && matchingEvent.selectedTee && course.teeOptions) {
+                                    const teeData = course.teeOptions.find(t => t.name === matchingEvent.selectedTee);
+                                    if (teeData) {
+                                        courseRating = teeData.rating;
+                                        courseSlope = teeData.slope;
+                                    }
+                                }
+                            }
+                            
+                            // Recalculate totals with new adjustment
+                            calculateScorecardTotals(sc.id, player, course, courseRating, courseSlope);
+                            await saveScorecard(sc);
+                        }
+                    }
+                }
+                
                 renderPlayers();
                 renderLeaderboard();
                 updateScoreDropdowns();
+                renderScorecards();
             } else {
                 alert('Error saving player. Please try again.');
             }
