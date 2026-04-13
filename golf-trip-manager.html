@@ -3318,13 +3318,21 @@
                     .filter(p => p)
                     .map(p => p.name);
                 
-                // Captain is the first player in the pairing
+                // Captain is the first player in the pairing - ALWAYS use captain's scorecard for team score
                 const captain = teamPlayers[0] || 'TBD';
+                const captainId = pairing.players[0];
                 
                 const teamKey = `${course.name}-${pairing.date}-${pairing.time}`;
                 
                 if (!scrambleResults.find(r => r.teamKey === teamKey)) {
-                    const holesCompleted = sc.holes.filter(score => score > 0).length;
+                    // Get the captain's scorecard (team score is stored there)
+                    const captainScorecard = scorecards.find(s => 
+                        s.playerId === captainId && s.courseId === course.id
+                    );
+                    
+                    if (!captainScorecard) return;
+                    
+                    const holesCompleted = captainScorecard.holes.filter(score => score > 0).length;
                     
                     // Calculate par for holes completed
                     let parForHoles = 0;
@@ -3333,7 +3341,7 @@
                     }
                     
                     // Calculate vs par
-                    const vsPar = sc.grossTotal - parForHoles;
+                    const vsPar = captainScorecard.grossTotal - parForHoles;
                     
                     scrambleResults.push({
                         teamKey,
@@ -3342,7 +3350,7 @@
                         date: pairing.date,
                         time: pairing.time,
                         teamPlayers,
-                        grossScore: sc.grossTotal,
+                        grossScore: captainScorecard.grossTotal,
                         holesCompleted,
                         vsPar,
                         parForHoles
