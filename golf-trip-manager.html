@@ -1075,7 +1075,6 @@
         <div id="leaderboard" class="tab-content">
             <div class="card">
                 <h2>Overall Leaderboard</h2>
-                <p style="margin-bottom: 20px; color: var(--kelly-green);">Total scores across all rounds (lower is better)</p>
                 <div id="leaderboardContainer"></div>
             </div>
         </div>
@@ -1084,7 +1083,6 @@
         <div id="scramble" class="tab-content">
             <div class="card">
                 <h2>Scramble Leaderboard</h2>
-                <p style="margin-bottom: 20px; color: var(--kelly-green);">Scramble round scores (gross only, lower is better)</p>
                 <div id="scrambleContainer"></div>
             </div>
         </div>
@@ -3290,9 +3288,6 @@
                         }).join('')}
                     </tbody>
                 </table>
-                <p style="margin-top: 20px; color: var(--kelly-green); text-align: center; font-style: italic;">
-                    Leaderboard ranked by total stableford points (higher is better) • "F" indicates a finished round
-                </p>
             `;
             
             container.innerHTML = tableHTML;
@@ -3412,9 +3407,6 @@
                         }).join('')}
                     </tbody>
                 </table>
-                <p style="margin-top: 20px; color: var(--kelly-green); text-align: center; font-style: italic;">
-                    Scramble teams ranked by score vs par (lower is better) • E = Even par • (5) = 5 under par • +3 = 3 over par • "F" = finished round
-                </p>
             `;
             
             container.innerHTML = tableHTML;
@@ -3967,12 +3959,6 @@
             // Show available players pool
             html += `
                 <div class="available-players">
-                    <div class="available-players-title">
-                        All Players (click to select, then click a slot to assign)<br>
-                        <span style="font-size: 0.85rem; font-weight: 400; color: var(--sand);">
-                            Note: Players can be assigned to multiple tee times across different days
-                        </span>
-                    </div>
                     <div class="player-pool" id="playerPool">
                         ${availablePlayers.map(p => `
                             <div class="player-chip" data-player-id="${p.id}" onclick="selectPlayer(${p.id})">
