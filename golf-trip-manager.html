@@ -3128,23 +3128,14 @@
             );
             if (!pairing) return false;
             
-            // Find matching event
+            // Find matching event by course name only (date/time matching is too strict)
             const matchingEvent = events.find(e => {
                 if (!e.name.startsWith('Tee Time -')) return false;
                 const courseName = e.name.replace('Tee Time - ', '').trim();
-                if (courseName !== course.name) return false;
-                
-                const eventDate = new Date(e.time);
-                const pt = parseTeeTime(pairing.date, pairing.time);
-                return pt && 
-                       pt.getMonth() === eventDate.getMonth() &&
-                       pt.getDate() === eventDate.getDate() &&
-                       pt.getFullYear() === eventDate.getFullYear() &&
-                       pt.getHours() === eventDate.getHours() &&
-                       Math.abs(pt.getMinutes() - eventDate.getMinutes()) <= 1;
+                return courseName === course.name && e.isScramble;
             });
             
-            return matchingEvent && matchingEvent.isScramble;
+            return !!matchingEvent;
         }
         
         function renderLeaderboard() {
